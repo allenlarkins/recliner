@@ -20,8 +20,8 @@
 
 #define BUTTON_UP           D6
 #define RELAY_UP            D7
-#define BUTTON_DOWN         D8
-#define RELAY_DOWN          D9
+//#define BUTTON_DOWN         D8
+//#define RELAY_DOWN          D9
  
 /*****************  END USER CONFIG SECTION *********************************/
 /*****************  END USER CONFIG SECTION *********************************/
@@ -48,21 +48,29 @@ const char *mqtt_user = USER_MQTT_USERNAME ;
 const char *mqtt_pass = USER_MQTT_PASSWORD ;
 const char *mqtt_client_name = USER_MQTT_CLIENT_NAME ; 
 
+const BUTTON_PROCESSED_NONE   = 0;
+const BUTTON_PROCESSED_SINGLE = 1;
+const BUTTON_PROCESSED_DOUBLE = 2;
+
+
 int downButtonState;
 int lastDownButtonState = LOW;
 
+unsigned long lastDebounceTime = 0;    // the last time the output pin was toggled
+unsigned long debounceDelay = 50; 
+unsigned long lastDebouncedPress = 0;       // the last time a debounced press was active
+
+/*
 int upButtonState;
 int lastUpButtonState   = LOW;
 
 int currentDownRelayState = LOW;
 int currentUPRelayState = LOW;
+*/
 
-unsigned long lastDebounceTime = 0;    // the last time the output pin was toggled
-unsigned long debounceDelay = 50; 
-
-unsigned long lastDebouncedPress = 0;       // the last time a debounced press was active
 unsigned long doubleClickDelay = 800;       // the time before a second click is concidered to be a double click
 unsigned long doubleClickDuration = 2500;   // the time the double click effect will last on the relay  
+
 
 //Functions
 void setup_wifi() {
@@ -181,12 +189,12 @@ void checkIn()
 //Run once setup
 void setup() {
   pinMode(BUTTON_UP,   INPUT);
-  pinMode(BUTTON_DOWN, INPUT);
+//  pinMode(BUTTON_DOWN, INPUT);
   pinMode(RELAY_UP,    OUTPUT);
-  pinMode(RELAY_DOWN,  OUTPUT);
+//  pinMode(RELAY_DOWN,  OUTPUT);
 
   digitalWrite(RELAY_UP,   LOW);
-  digitalWrite(RELAY_DOWN, LOW);
+//  digitalWrite(RELAY_DOWN, LOW);
   
   Serial.begin(115200);
 
@@ -203,12 +211,18 @@ void setup() {
 }
 
 
-void processButtons(){
+int processSpesificButton(bool upperSet){
+
   // read the state of the switch into a local variable:
-  int reading = digitalRead(BUTTON_UP);
+  int reading;
+  if (upperSet) 
+    reading = digitalRead(BUTTON_UP)
+  else
+    reading = digitalRead(BUTTON_DOWN);
 
   // If the switch changed, due to noise or pressing:
   if (reading != lastButtonState) {
+    lastButtonState = reading;
     // reset the debouncing timer
     lastDebounceTime = millis();
     Serial.print("-");
@@ -222,30 +236,66 @@ void processButtons(){
     // if the button state has changed:
     if (reading != buttonState) {
       buttonState = reading;
-      currentDownRelayState = LOW;
-      currentUPRelayState = LOW;
-
+    }
 
       //Now, if this button is being pressed again within the double-click debounce time, the activate the long click relay
       if ((millis() - lastDebouncedPress) > doubleClickDelay){
          // if the button has been pressed again within the double-debounce time
-        currentDownRelayState = HIGH;
-        currentUPRelayState = LOW;
-        s 
+         Serial.print("DOUBLE CLICK");
+         lastDebouncedPress = millis();
+         return BUTTON_PROCESSED_DOUBLE;
       }
- 
-
-      
-    }
+      return BUTTON_PROCESSED_SINGLE;
+    
   }
 
-  reading = lastButtonState;
+  return BUTTON_PROCESSED_NONE;
+}
 
+
+void processButtons(){
+
+  switch (processSpesificButton(TRUE))
+  {
+  case BUTTON_PROCESSED_SINGLE:
+    /* code */
+    break;
+  case BUTTON_PROCESSED_DOUBLE:
+    /**/
+    break;
+  
+  default:
+      switch (processSpesificButton(FALSE))
+      {
+      case BUTTON_PROCESSED_SINGLE:
+        /* code */
+        break;
+      case BUTTON_PROCESSED_DOUBLE:
+        /* */
+        break;
+      
+      default:
+        reset the relay variables
+      }
+    break;
+  }  
 }
 
 void processRelays(){
   // TODO
-  digitalWrite(RELAY_UP,   LOW);
+  if (){
+    digitalWrite(RELAY_UP,   HIGH);
+  }
+  else{
+    if (){
+      digitalWrite(RELAY_DOWN,   HIGH);
+    }
+    else{
+      digitalWrite(RELAY_UP,   LOW);
+      digitalWrite(RELAY_DOWN, LOW);
+    }
+  }
+  
   digitalWrite(RELAY_DOWN, LOW);
 
   
